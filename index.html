@@ -1,0 +1,1161 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Digital Postbox — NHA</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{
+  --bg:#f5f4f0;--surface:#fff;--surface2:#f0efe9;--border:#e0dfd8;
+  --text:#1a1917;--text2:#5c5a54;--text3:#9c9a93;
+  --blue-bg:#e8f0fb;--blue:#1e55b0;--blue-mid:#3b7dd8;
+  --green-bg:#e4f3ea;--green:#1a7d3e;--green-mid:#2da857;
+  --amber-bg:#fdf3e3;--amber:#b06a0a;--amber-mid:#e08a1a;
+  --red-bg:#fce8e8;--red:#b52222;
+  --purple:#7b2d8b;--purple-bg:#f5edf8;
+  --radius:8px;--radius-lg:12px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'IBM Plex Sans Thai',sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.6;}
+.page{max-width:1100px;margin:0 auto;padding:32px 24px 64px;}
+
+/* ── UPLOAD ZONE ── */
+.upload-zone{
+  border:2px dashed var(--blue-mid);border-radius:var(--radius-lg);
+  background:var(--surface);padding:32px;text-align:center;cursor:pointer;
+  transition:all .2s;margin-bottom:24px;
+}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--green-mid);background:var(--green-bg);}
+.upload-zone h3{font-size:15px;font-weight:600;color:var(--blue);margin-bottom:4px;}
+.upload-zone p{font-size:12px;color:var(--text3);}
+.upload-icon{font-size:36px;margin-bottom:8px;}
+
+/* ── DATA BAR (after loading) ── */
+.data-bar{
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);
+  padding:12px 16px;margin-bottom:24px;
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+}
+.data-bar-label{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;}
+.month-files{display:flex;gap:6px;flex-wrap:wrap;flex:1;}
+.month-file-chip{
+  display:inline-flex;align-items:center;gap:5px;
+  background:var(--green-bg);border:1px solid #a8dbb8;
+  border-radius:20px;padding:3px 8px 3px 10px;font-size:12px;color:var(--green);
+}
+.month-file-chip button{
+  background:none;border:none;cursor:pointer;color:var(--green);
+  font-size:13px;line-height:1;padding:0 1px;opacity:.7;
+}
+.month-file-chip button:hover{opacity:1;}
+.data-bar-actions{display:flex;gap:8px;align-items:center;}
+.btn-add{
+  padding:5px 14px;border-radius:20px;border:1.5px dashed var(--blue-mid);
+  background:none;color:var(--blue);font-size:12px;cursor:pointer;
+  font-family:'IBM Plex Sans Thai',sans-serif;transition:all .15s;white-space:nowrap;
+}
+.btn-add:hover{background:var(--blue-bg);}
+.btn-export{
+  padding:5px 14px;border-radius:20px;border:1px solid var(--border);
+  background:var(--surface2);color:var(--text2);font-size:12px;cursor:pointer;
+  font-family:'IBM Plex Sans Thai',sans-serif;transition:all .15s;white-space:nowrap;
+}
+.btn-export:hover{background:var(--text);color:#fff;border-color:var(--text);}
+.btn-sync-sheets{
+  padding:5px 14px;border-radius:20px;border:1.5px solid var(--green-mid);
+  background:var(--green-bg);color:var(--green);font-size:12px;cursor:pointer;
+  font-family:'IBM Plex Sans Thai',sans-serif;transition:all .15s;white-space:nowrap;
+}
+.btn-sync-sheets:hover{background:var(--green);color:#fff;}
+.btn-sync-sheets:disabled{opacity:.5;cursor:not-allowed;}
+#fileInput{display:none;}
+#fileInputAdd{display:none;}
+#regExcelInput{display:none;}
+
+/* ── CONFIG ── */
+.config-row{display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;align-items:flex-end;}
+.config-label{font-size:10px;color:var(--text3);margin-bottom:2px;text-transform:uppercase;letter-spacing:.05em;}
+.config-field{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:5px 10px;}
+.config-field input{border:none;outline:none;font-size:14px;font-family:'IBM Plex Mono',monospace;font-weight:600;color:var(--blue);width:70px;background:transparent;}
+.config-hint{font-size:11px;color:var(--text3);padding-bottom:8px;}
+
+/* ── HEADER & BUTTONS ── */
+.header{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:20px;padding-bottom:20px;border-bottom:1.5px solid var(--border);}
+.header-left h1{font-size:22px;font-weight:600;letter-spacing:-.3px;}
+.header-left p{font-size:13px;color:var(--text2);margin-top:3px;}
+.header-right{font-size:12px;color:var(--text3);text-align:right;font-family:'IBM Plex Mono',monospace;}
+.btn-group{display:flex;gap:8px;margin-top:6px;align-items:center;justify-content:flex-end;}
+.privacy-btn{padding:4px 14px;border-radius:20px;border:1px solid var(--border);background:var(--surface);color:var(--text2);cursor:pointer;font-size:12px;font-family:'IBM Plex Sans Thai',sans-serif;transition:all .15s;}
+.privacy-btn:hover{background:var(--blue-mid);color:#fff;}
+.privacy-btn.on{background:var(--purple-bg);border-color:var(--purple);color:var(--purple);}
+
+/* ── MONTH TABS ── */
+.month-tabs{display:flex;gap:6px;margin-bottom:20px;flex-wrap:wrap;}
+.month-chip{padding:5px 16px;border-radius:20px;font-size:12px;cursor:pointer;background:var(--surface);border:1px solid var(--border);color:var(--text2);transition:all .15s;font-family:'IBM Plex Sans Thai',sans-serif;}
+.month-chip.active{background:var(--text);color:#fff;border-color:var(--text);}
+
+/* ── TABS ── */
+.tabs{display:flex;gap:2px;margin-bottom:24px;background:var(--surface2);border-radius:var(--radius);padding:3px;border:1px solid var(--border);width:fit-content;}
+.tab{padding:6px 18px;border-radius:6px;font-size:13px;cursor:pointer;color:var(--text2);transition:all .15s;}
+.tab.active{background:var(--surface);color:var(--text);font-weight:500;box-shadow:0 1px 3px rgba(0,0,0,.08);}
+.tab:hover:not(.active){color:var(--text);}
+.panel{display:none;}.panel.active{display:block;}
+
+/* ── KPI ── */
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:24px;}
+.kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 16px;}
+.kpi-label{font-size:11px;color:var(--text3);margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em;}
+.kpi-val{font-size:26px;font-weight:600;line-height:1;font-family:'IBM Plex Mono',monospace;}
+.kpi-sub{font-size:11px;color:var(--text2);margin-top:5px;}
+.kpi-val.blue{color:var(--blue);}.kpi-val.green{color:var(--green);}
+.kpi-val.amber{color:var(--amber);}.kpi-val.red{color:var(--red);}
+
+/* ── LAYOUT ── */
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+@media(max-width:700px){.two-col{grid-template-columns:1fr;}}
+.section-gap{height:20px;}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:18px 20px;}
+.card-title{font-size:12px;font-weight:500;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:14px;}
+
+/* ── FUNNEL ── */
+.funnel-step{display:flex;align-items:center;gap:10px;}
+.funnel-bar-wrap{flex:1;height:38px;}
+.funnel-bar{height:100%;border-radius:5px;display:flex;align-items:center;padding:0 12px;justify-content:space-between;}
+.funnel-bar-text{font-size:13px;font-weight:500;}
+.funnel-bar-pct{font-size:11px;font-family:'IBM Plex Mono',monospace;}
+.funnel-label{width:160px;flex-shrink:0;font-size:12px;color:var(--text2);text-align:right;}
+.funnel-connector{width:1.5px;height:10px;background:var(--border);margin:2px 0 2px 160px;}
+.funnel-hint{font-size:11px;color:var(--text3);margin-top:8px;text-align:right;font-style:italic;}
+.mini-cards{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px;}
+.mini-card{background:var(--surface2);border-radius:var(--radius);padding:10px 12px;}
+.mini-card-label{font-size:11px;color:var(--text3);margin-bottom:4px;}
+.mini-card-val{font-size:18px;font-weight:600;font-family:'IBM Plex Mono',monospace;}
+.mini-card-rate{font-size:11px;margin-top:3px;}
+
+/* ── BARS ── */
+.bar-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+.bar-row-label{width:130px;flex-shrink:0;font-size:12px;color:var(--text2);text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.bar-track{flex:1;background:var(--surface2);border-radius:4px;height:20px;overflow:hidden;}
+.bar-fill{height:100%;border-radius:4px;display:flex;align-items:center;padding-left:8px;font-size:11px;font-weight:500;color:#fff;min-width:4px;}
+.bar-num{width:50px;text-align:right;font-size:11px;color:var(--text2);font-family:'IBM Plex Mono',monospace;}
+
+/* ── TABLE ── */
+table{width:100%;border-collapse:collapse;font-size:13px;}
+th{font-size:11px;font-weight:500;color:var(--text3);text-align:left;padding:6px 10px;border-bottom:1px solid var(--border);text-transform:uppercase;letter-spacing:.04em;white-space:nowrap;}
+td{padding:8px 10px;border-bottom:1px solid var(--surface2);color:var(--text);}
+tr:last-child td{border-bottom:none;}
+tr.total-row td{font-weight:500;background:var(--surface2);}
+.tbl-wrap{overflow-x:auto;}
+
+/* ── PILLS ── */
+.pill{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:500;}
+.pill-green{background:var(--green-bg);color:var(--green);}
+.pill-amber{background:var(--amber-bg);color:var(--amber);}
+.pill-red{background:var(--red-bg);color:var(--red);}
+.pill-blue{background:var(--blue-bg);color:var(--blue);}
+.pill-gray{background:var(--surface2);color:var(--text2);}
+
+/* ── STAT ROW ── */
+.stat-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--surface2);font-size:13px;}
+.stat-row:last-child{border-bottom:none;}
+.stat-val{font-weight:500;font-family:'IBM Plex Mono',monospace;}
+
+/* ── PEOPLE & KYC ── */
+.search-input{width:100%;padding:8px 12px;font-size:13px;font-family:'IBM Plex Sans Thai',sans-serif;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);color:var(--text);outline:none;margin-bottom:12px;}
+.search-input:focus{border-color:var(--blue-mid);}
+.filter-btns{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;}
+.filter-btn{padding:4px 14px;font-size:12px;font-family:'IBM Plex Sans Thai',sans-serif;border:1px solid var(--border);border-radius:20px;background:var(--surface);color:var(--text2);cursor:pointer;transition:all .12s;}
+.filter-btn.active{background:var(--text);color:#fff;border-color:var(--text);}
+.legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:14px;}
+.legend-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text2);}
+.legend-dot{width:10px;height:10px;border-radius:2px;flex-shrink:0;}
+.empty{text-align:center;padding:48px 20px;color:var(--text3);}
+.empty-icon{font-size:40px;margin-bottom:10px;}
+.empty h3{font-size:15px;color:var(--text2);margin-bottom:4px;}
+</style>
+</head>
+<body>
+<div class="page">
+
+<div id="uploadZone" class="upload-zone"
+     onclick="document.getElementById('fileInput').click()"
+     ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event)">
+  <div class="upload-icon">📂</div>
+  <h3>1. วางไฟล์ NHA_Report.xlsx ที่นี่</h3>
+  <p>หลังจากระบบคำนวณแล้ว จะสามารถอัพโหลดไฟล์ "ข้อมูลลงทะเบียน" ได้ในขั้นตอนถัดไป</p>
+  <input type="file" id="fileInput" accept=".xlsx,.xls" onchange="handleFirstFile(event)">
+</div>
+
+<div id="dataBar" class="data-bar" style="display:none">
+  <span class="data-bar-label">ข้อมูลที่โหลด</span>
+  <div class="month-files" id="monthFiles"></div>
+  <div class="data-bar-actions">
+    <button class="btn-add" onclick="document.getElementById('fileInputAdd').click()">+ เพิ่มเดือน</button>
+    <button class="btn-export" onclick="exportToExcel()">⬇ Export Excel</button>
+    <input type="file" id="fileInputAdd" accept=".xlsx,.xls" onchange="handleAddFile(event)">
+  </div>
+</div>
+
+<div class="config-row" id="configRow" style="display:none">
+  <span class="config-hint">ข้อมูลลงทะเบียน:</span>
+  <div class="config-field"><div class="config-label">ผู้พักอาศัย</div><input type="number" id="cfgRes"   value="1200" oninput="reRenderOverview()" disabled title="ล็อกค่าไว้ที่ 1200"></div>
+  <div class="config-field"><div class="config-label">คู่สัญญา</div>    <input type="number" id="cfgUnits" value="331"  oninput="reRenderOverview()" disabled title="ล็อกค่าไว้ที่ 331"></div>
+  <div class="config-field"><div class="config-label">ลงทะเบียน ห้อง</div>  <input type="number" id="cfgRegRooms" value="0" oninput="reRenderOverview()" disabled title="คำนวณห้องไม่ซ้ำอัตโนมัติ"></div>
+  <div class="config-field"><div class="config-label">ลงทะเบียน คน</div>  <input type="number" id="cfgReg"   value="0"  oninput="reRenderOverview()" disabled title="คำนวณจากไฟล์อัตโนมัติ"></div>
+  <div class="config-field"><div class="config-label">ยืนยันตัวตน</div><input type="number" id="cfgKyc"   value="0"  oninput="reRenderOverview()" disabled title="คำนวณจากไฟล์อัตโนมัติ"></div>
+   
+  <button class="btn-sync-sheets" onclick="document.getElementById('regExcelInput').click()" title="อัพโหลดไฟล์ ข้อมูลลงทะเบียนแบบ Excel">📂 2. อัพโหลดไฟล์ลงทะเบียน (Excel)</button>
+  <input type="file" id="regExcelInput" accept=".xlsx,.xls" onchange="handleRegExcel(event)">
+  <span id="syncStatus" style="font-size:11px;color:var(--text3);white-space:nowrap;"></span>
+</div>
+
+<div class="header">
+  <div class="header-left">
+    <h1>Digital Postbox — NHA</h1>
+    <p id="hdrSub">นำเข้าไฟล์ Excel เพื่อดูรายงาน</p>
+  </div>
+  <div class="header-right">
+    <span id="hdrDate"></span>
+    <div class="btn-group">
+      <button class="privacy-btn" id="privacyBtn" onclick="togglePrivacy()" style="display:none">🔒 ดาวน์โหลดมุมมอง Privacy</button>
+    </div>
+  </div>
+</div>
+
+<div class="month-tabs" id="monthTabs" style="display:none"></div>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('overview')">ภาพรวม</div>
+  <div class="tab" onclick="switchTab('gen')">Generation</div>
+  <div class="tab" onclick="switchTab('speed')">Speed to Open</div>
+  <div class="tab" onclick="switchTab('people')">รายบุคคล</div>
+  <div class="tab" onclick="switchTab('kyc')">KYC</div>
+</div>
+
+<div id="panel-overview" class="panel active">
+  <div id="ovKpi" class="kpi-grid">
+    <div style="grid-column:1/-1"><div class="empty"><div class="empty-icon">📊</div><h3>รอข้อมูล</h3><p>นำเข้าไฟล์ Excel เพื่อดูสถิติ</p></div></div>
+  </div>
+  <div id="ovMain"></div>
+</div>
+
+<div id="panel-gen" class="panel">
+  <div id="genContent"><div class="empty"><div class="empty-icon">👥</div><h3>รอข้อมูล</h3></div></div>
+</div>
+
+<div id="panel-speed" class="panel">
+  <div id="speedContent"><div class="empty"><div class="empty-icon">⏱</div><h3>รอข้อมูล</h3></div></div>
+</div>
+
+<div id="panel-people" class="panel">
+  <input class="search-input" type="text" id="peopleSearch" placeholder="ค้นหาชื่อ, Generation..." oninput="filterPeople()">
+  <div class="filter-btns">
+    <button class="filter-btn active" data-f="all"     onclick="setPeopleFilter('all',this)">ทั้งหมด</button>
+    <button class="filter-btn"        data-f="read"    onclick="setPeopleFilter('read',this)">อ่านครบ</button>
+    <button class="filter-btn"        data-f="any_one" onclick="setPeopleFilter('any_one',this)">อ่านอย่างใดอย่างหนึ่ง</button>
+    <button class="filter-btn"        data-f="partial" onclick="setPeopleFilter('partial',this)">อ่านบางส่วน</button>
+    <button class="filter-btn"        data-f="none"    onclick="setPeopleFilter('none',this)">ไม่อ่านเลย</button>
+  </div>
+  <div class="card" style="padding:0;overflow:hidden">
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr><th>#</th><th>ชื่อ-นามสกุล</th><th>เพศ</th><th>อายุ</th><th>Generation</th>
+              <th>ประจำเดือน</th><th>e-Invoice</th><th>e-Receipt</th><th>สถานะ</th></tr>
+        </thead>
+        <tbody id="peopleBody">
+          <tr><td colspan="9" style="text-align:center;color:var(--text3);padding:32px">นำเข้าไฟล์ Excel เพื่อดูข้อมูล</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div id="panel-kyc" class="panel">
+  <div class="card" style="padding:0;overflow:hidden">
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr><th>ลำดับ</th><th>เลขที่ห้อง</th><th>ชื่อ - นามสกุล ที่ลงทะเบียน</th><th>สถานะลูกบ้าน</th><th>เบอร์โทรศัพท์</th><th>สถานะการยืนยันตัวตน</th><th>หมายเหตุ</th></tr>
+        </thead>
+        <tbody id="kycBody">
+          <tr><td colspan="7" style="text-align:center;color:var(--text3);padding:32px">กรุณาอัพโหลดไฟล์ "ข้อมูลลงทะเบียน" แบบ Excel ก่อน</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<script>
+// ══════════════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════════════
+var S = {
+  raw: [],        
+  people: [],     
+  months: [],     
+  loadedMonths: [],
+  month: 'all',   
+  privacy: false,
+  peopleFilter: 'all',
+  kyc: []         
+};
+
+// ══════════════════════════════════════════════
+//  CONSTANTS
+// ══════════════════════════════════════════════
+var REF_YEAR = 2026;
+var GENS = [
+  {name:'Gen Z',       min:14, max:29,  color:'#b52222'},
+  {name:'Millennial',  min:30, max:45,  color:'#1D9E75'},
+  {name:'Gen X',       min:46, max:61,  color:'#3b7dd8'},
+  {name:'Baby Boomer', min:62, max:75,  color:'#e08a1a'},
+  {name:'Late Boomer', min:76, max:80,  color:'#9c9a93'},
+  {name:'Silent Gen',  min:81, max:120, color:'#5c5a54'}
+];
+var SPEED = [
+  {label:'ภายใน 1 ชั่วโมง', min:0,    max:60,   color:'#1D9E75'},
+  {label:'1–6 ชั่วโมง',     min:60,   max:360,  color:'#3b7dd8'},
+  {label:'6–24 ชั่วโมง',    min:360,  max:1440, color:'#e08a1a'},
+  {label:'1–2 วัน',         min:1440, max:2880, color:'#e65c00'},
+  {label:'มากกว่า 2 วัน',   min:2880, max:1e9,  color:'#b52222'}
+];
+
+// ══════════════════════════════════════════════
+//  FILE UPLOAD (EXCEL 1)
+// ══════════════════════════════════════════════
+function onDragOver(e) { e.preventDefault(); document.getElementById('uploadZone').classList.add('drag'); }
+function onDragLeave()  { document.getElementById('uploadZone').classList.remove('drag'); }
+function onDrop(e)      { e.preventDefault(); document.getElementById('uploadZone').classList.remove('drag'); var f=e.dataTransfer.files[0]; if(f) readFile(f, false); }
+function handleFirstFile(e) { if(e.target.files[0]) readFile(e.target.files[0], false); }
+function handleAddFile(e)   { if(e.target.files[0]) readFile(e.target.files[0], true);  e.target.value=''; }
+
+function readFile(file, isAddMode) {
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      var wb = XLSX.read(e.target.result, {type:'array', cellDates:true});
+      var sn = wb.SheetNames[0];
+      for (var i=0; i<wb.SheetNames.length; i++) {
+        if (wb.SheetNames[i].indexOf('Raw Data')!==-1 || wb.SheetNames[i].indexOf('mailbox')!==-1) { sn=wb.SheetNames[i]; break; }
+      }
+      var rows = XLSX.utils.sheet_to_json(wb.Sheets[sn], {cellDates:true, raw:true, defval:''});
+      if (!rows.length) { alert('ไม่พบข้อมูลในไฟล์'); return; }
+      if (isAddMode) mergeData(rows, file.name);
+      else           firstLoad(rows, file.name);
+    } catch(err) { alert('อ่านไฟล์ไม่สำเร็จ: ' + err.message); }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function firstLoad(rows, filename) {
+  S.raw = [];
+  S.loadedMonths = [];
+  mergeData(rows, filename);
+}
+
+function mergeData(rows, filename) {
+  var newNorm = rows.map(normalizeRow).filter(function(r){ return r.name; });
+  var existingIds = {};
+  S.raw.forEach(function(r){ if(r.transId) existingIds[r.transId]=true; });
+  var added = newNorm.filter(function(r){
+    if (r.transId && existingIds[r.transId]) return false;
+    return true;
+  });
+
+  if (!added.length) { alert('ไม่พบข้อมูลใหม่ในไฟล์ (อาจซ้ำกับที่โหลดไปแล้ว)'); return; }
+
+  S.raw = S.raw.concat(added);
+  S.months  = uniqueSorted(S.raw.map(function(r){ return r.month; }).filter(Boolean));
+  S.people  = buildPeople(S.raw);
+
+  var newMonths = uniqueSorted(added.map(function(r){ return r.month; }).filter(Boolean));
+  newMonths.forEach(function(m){
+    if (!S.loadedMonths.some(function(lm){ return lm.month===m; })) {
+      S.loadedMonths.push({ month:m, label:fmtMonth(m), count:added.filter(function(r){ return r.month===m; }).length });
+    }
+  });
+
+  document.getElementById('uploadZone').style.display = 'none';
+  document.getElementById('dataBar').style.display    = 'flex';
+  document.getElementById('configRow').style.display  = 'flex';
+  document.getElementById('privacyBtn').style.display = 'inline-block';
+  document.getElementById('hdrDate').textContent = 'ข้อมูล ณ ' + new Date().toLocaleDateString('th-TH',{day:'numeric',month:'short',year:'numeric'});
+  document.getElementById('hdrSub').textContent  = S.people.length + ' ผู้รับเอกสาร · ' + S.months.map(fmtMonth).join(', ');
+
+  updateMonthFilesUI();
+  buildMonthTabs();
+  S.month = 'all';
+  document.querySelectorAll('.month-chip').forEach(function(b){ b.classList.toggle('active', b.dataset.m==='all'); });
+  renderAll();
+}
+
+function removeMonth(m) {
+  S.raw = S.raw.filter(function(r){ return r.month !== m; });
+  S.loadedMonths = S.loadedMonths.filter(function(lm){ return lm.month !== m; });
+  S.months  = uniqueSorted(S.raw.map(function(r){ return r.month; }).filter(Boolean));
+  S.people  = buildPeople(S.raw);
+  S.month   = 'all';
+
+  if (!S.raw.length) {
+    document.getElementById('uploadZone').style.display = 'block';
+    document.getElementById('dataBar').style.display    = 'none';
+    document.getElementById('configRow').style.display  = 'none';
+    document.getElementById('monthTabs').style.display  = 'none';
+    document.getElementById('privacyBtn').style.display = 'none';
+    resetPanels();
+    return;
+  }
+  document.getElementById('hdrSub').textContent = S.people.length + ' ผู้รับเอกสาร · ' + S.months.map(fmtMonth).join(', ');
+  updateMonthFilesUI();
+  buildMonthTabs();
+  renderAll();
+}
+
+function updateMonthFilesUI() {
+  var html = S.loadedMonths.map(function(lm){
+    return '<span class="month-file-chip">'
+      + lm.label + ' <span style="opacity:.6;font-size:10px">(' + lm.count + ')</span>'
+      + ' <button onclick="removeMonth(\'' + lm.month + '\')" title="ลบ ' + lm.label + '">✕</button>'
+      + '</span>';
+  }).join('');
+  document.getElementById('monthFiles').innerHTML = html;
+}
+
+function resetPanels() {
+  var empty = '<div class="empty"><div class="empty-icon">📊</div><h3>รอข้อมูล</h3></div>';
+  document.getElementById('ovKpi').innerHTML = '<div style="grid-column:1/-1">' + empty + '</div>';
+  document.getElementById('ovMain').innerHTML = '';
+  document.getElementById('genContent').innerHTML   = empty;
+  document.getElementById('speedContent').innerHTML = empty;
+  document.getElementById('peopleBody').innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--text3);padding:32px">นำเข้าไฟล์ Excel เพื่อดูข้อมูล</td></tr>';
+}
+
+// ══════════════════════════════════════════════
+//  NORMALIZE ROW
+// ══════════════════════════════════════════════
+function normalizeRow(r) {
+  var transId  = s(r['transactionId']||r['transId']||'');
+  var name     = s(r['ชื่อ-นามสกุล']||r['NameTh']);
+  var sex      = normSex(r['เพศ']||r['sex']);
+  var birthRaw = r['วันเกิด']||r['birthDate']||null;
+  var subject  = s(r['subject']||'');
+  var recipId  = s(r['recipientId']||'');
+
+  var docType  = s(r['ประเภทเอกสาร']||r['docType']||'');
+  if (!docType) {
+    var col1 = s(r['Column1']||'');
+    docType  = (col1 && col1.indexOf('=')===-1) ? col1 : extractDocType(subject);
+  }
+
+  var period  = s(r['ประจำเดือน']||r['period']||extractPeriod(subject));
+  var status  = normStatus(r['สถานะ']||r['recipientStatus']||'');
+  var sentAt  = toDate(r['วันที่ส่ง']||r['sentAt']);
+  var readAt  = toDate(r['วันที่อ่าน']||r['readAt']);
+  var durMin  = parseDurMin(r['ระยะเวลา (นาที)'], r['ระยะเวลา (ชม.:นาที)']||r['readDuration h:mm'], sentAt, readAt);
+  var month   = sentAt ? fmtYM(sentAt) : '';
+
+  return {transId:transId, name:name, sex:sex, birthRaw:birthRaw, docType:docType,
+          period:period, status:status, sentAt:sentAt, readAt:readAt, durMin:durMin,
+          recipId:recipId, month:month};
+}
+
+// ══════════════════════════════════════════════
+//  BUILD PEOPLE
+// ══════════════════════════════════════════════
+function buildPeople(rows) {
+  var byKey = {};
+  rows.forEach(function(r){
+    var key = (r.recipId || r.name) + '|' + r.month;
+    if (!byKey[key]) byKey[key] = { key:key, name:r.name, sex:r.sex, birthRaw:r.birthRaw, month:r.month, txs:[] };
+    byKey[key].txs.push(r);
+  });
+
+  var seq = 1;
+  return Object.keys(byKey).map(function(k){
+    var p = byKey[k];
+    var inv    = p.txs.filter(function(t){ return t.docType.indexOf('Invoice')!==-1; });
+    var rec    = p.txs.filter(function(t){ return t.docType.indexOf('Receipt')!==-1; });
+    var invRd  = inv.some(function(t){ return t.status==='read'; });
+    var recRd  = rec.some(function(t){ return t.status==='read'; });
+    var hasInv = inv.length>0, hasRec = rec.length>0;
+    var anyRd  = invRd||recRd;
+    var allRd  = (!hasInv||invRd)&&(!hasRec||recRd);
+    var st     = anyRd ? (allRd?'read':'partial') : 'none';
+    var age    = calcAge(p.birthRaw);
+    return { seq:seq++, name:p.name, sex:p.sex, age:age, gen:calcGen(age),
+             inv:hasInv?(invRd?'read':'wait'):'none',
+             rec:hasRec?(recRd?'read':'wait'):'none',
+             status:st, month:p.month, txs:p.txs };
+  });
+}
+
+// ══════════════════════════════════════════════
+//  HELPERS
+// ══════════════════════════════════════════════
+function s(v)       { return v==null ? '' : String(v).trim(); }
+function normSex(v) { var x=s(v).toLowerCase(); return x==='male'||x==='ชาย'?'ชาย':x==='female'||x==='หญิง'?'หญิง':'—'; }
+function normStatus(v){ var x=s(v).toLowerCase(); return (x==='read'||x==='อ่านแล้ว')?'read':'unread'; }
+function extractDocType(sub){ var m=sub.match(/\(([^)]+)\)/); return m?m[1]:''; }
+function extractPeriod(sub) { var m=sub.match(/ประจำเดือน\s+(\S+\s+\d+)/); return m?m[1].trim():''; }
+function toDate(v)  { if(!v) return null; if(v instanceof Date) return isNaN(v.getTime())?null:v; var d=new Date(v); return isNaN(d.getTime())?null:d; }
+function parseDurMin(numRaw, hmRaw, sentAt, readAt) {
+  var n=parseFloat(numRaw); if(!isNaN(n)&&n>=0) return n;
+  var hm=s(hmRaw);
+  if(hm&&hm.indexOf(':')!==-1&&hm.indexOf('=')===-1){ var p=hm.split(':'); var m2=parseInt(p[0],10)*60+parseInt(p[1]||'0',10); if(!isNaN(m2)&&m2>=0) return m2; }
+  if(sentAt&&readAt){ var d=(readAt.getTime()-sentAt.getTime())/60000; if(d>=0) return Math.round(d*10)/10; }
+  return null;
+}
+function calcAge(raw) {
+  if(!raw) return null;
+  var y;
+  if(raw instanceof Date) y=raw.getFullYear();
+  else { var st=s(raw); var m=st.match(/\d+\/\d+\/(\d{4})/); if(m) y=+m[1]; else { var d=new Date(st); if(!isNaN(d)) y=d.getFullYear(); } }
+  if(!y) return null;
+  if(y>2400) y-=543;
+  return REF_YEAR-y;
+}
+function calcGen(age) {
+  if(age==null) return 'Unknown';
+  for(var i=0;i<GENS.length;i++) if(age>=GENS[i].min&&age<=GENS[i].max) return GENS[i].name;
+  return 'Unknown';
+}
+function pct(n,d)    { return d>0 ? (n/d*100).toFixed(1)+'%' : '—'; }
+function pctNum(n,d) { return d>0 ? n/d*100 : 0; }
+function privName(nm){ 
+  if(!nm) return '—'; 
+  if(nm.indexOf('***') !== -1) return nm; 
+  return nm.trim().split(/\s+/).map(function(p){ return p[0]+'***'; }).join(' '); 
+}
+function privPhone(ph) {
+  if(!ph) return '';
+  if(ph.indexOf('X') !== -1) return ph; 
+  return 'XXX-XXX-XXXX';
+}
+function dname(nm)   { return S.privacy ? privName(nm) : (nm||'—'); }
+function fmtYM(d)    { return d.getFullYear()+'-'+pad2(d.getMonth()+1); }
+function fmtMonth(ym){ var p=ym.split('-'),y=+p[0],mo=+p[1]; var th=['','ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.']; return th[mo]+' '+(y+543); }
+function pad2(n)     { return String(n).padStart(2,'0'); }
+function uniqueSorted(arr) { return arr.filter(function(v,i,a){ return v&&a.indexOf(v)===i; }).sort(); }
+
+// ══════════════════════════════════════════════
+//  FILTERED DATA
+// ══════════════════════════════════════════════
+function filtPeople() { return S.month==='all' ? S.people : S.people.filter(function(p){ return p.month===S.month; }); }
+function filtTx()     { return S.month==='all' ? S.raw    : S.raw.filter(function(r){    return r.month===S.month; }); }
+
+// ══════════════════════════════════════════════
+//  MONTH VIEW TABS (filter by month)
+// ══════════════════════════════════════════════
+function buildMonthTabs() {
+  var el=document.getElementById('monthTabs');
+  if(S.months.length === 0){ el.style.display='none'; return; }
+  el.style.display='flex';
+  el.innerHTML='<button class="month-chip active" data-m="all" onclick="setMonth(\'all\',this)">ทั้งหมด</button>'
+    +S.months.map(function(m){ return '<button class="month-chip" data-m="'+m+'" onclick="setMonth(\''+m+'\',this)">'+fmtMonth(m)+'</button>'; }).join('');
+}
+function setMonth(m,el){ S.month=m; document.querySelectorAll('.month-chip').forEach(function(b){ b.classList.toggle('active',b.dataset.m===m); }); renderAll(); }
+
+// ══════════════════════════════════════════════
+//  RENDER ALL
+// ══════════════════════════════════════════════
+function renderAll() { 
+  reRenderOverview(); 
+  renderGen(); 
+  renderSpeed(); 
+  renderPeople(); 
+  renderKyc();
+}
+function reRenderOverview() { renderOverview(filtPeople(), filtTx()); }
+
+// ══════════════════════════════════════════════
+//  OVERVIEW
+// ══════════════════════════════════════════════
+function renderOverview(people, txs) {
+  var total   = people.length;
+  var readAll = people.filter(function(p){ return p.status==='read';    }).length;
+  var partial = people.filter(function(p){ return p.status==='partial'; }).length;
+  var noRead  = people.filter(function(p){ return p.status==='none';    }).length;
+  var invPpl  = people.filter(function(p){ return p.inv!=='none'; });
+  var recPpl  = people.filter(function(p){ return p.rec!=='none'; });
+  var invRead = people.filter(function(p){ return p.inv==='read'; }).length;
+  var recRead = people.filter(function(p){ return p.rec==='read'; }).length;
+  
+  // คำนวณข้อมูลเพศและพฤติกรรมดึงจากไฟล์ NHA Report เท่านั้นตามสั่ง
+  var maleUsers = people.filter(function(p){ return p.sex==='ชาย'; });
+  var femaleUsers = people.filter(function(p){ return p.sex==='หญิง'; });
+  
+  var totalMale = maleUsers.length;
+  var totalFemale = femaleUsers.length;
+  
+  // นับเฉพาะคนที่ได้รับ Invoice แยกเพศ
+  var maleInvPpl = maleUsers.filter(function(p){ return p.inv !== 'none'; });
+  var femaleInvPpl = femaleUsers.filter(function(p){ return p.inv !== 'none'; });
+  var maleInvRead = maleInvPpl.filter(function(p){ return p.inv === 'read'; }).length;
+  var femaleInvRead = femaleInvPpl.filter(function(p){ return p.inv === 'read'; }).length;
+  
+  // นับเฉพาะคนที่ได้รับ Receipt แยกเพศ
+  var maleRecPpl = maleUsers.filter(function(p){ return p.rec !== 'none'; });
+  var femaleRecPpl = femaleUsers.filter(function(p){ return p.rec !== 'none'; });
+  var maleRecRead = maleRecPpl.filter(function(p){ return p.rec === 'read'; }).length;
+  var femaleRecRead = femaleRecPpl.filter(function(p){ return p.rec === 'read'; }).length;
+  
+  var cfg={
+    res: 1200, 
+    units: 331, 
+    regRooms: +document.getElementById('cfgRegRooms').value || 0,
+    reg: +document.getElementById('cfgReg').value || 0,
+    kyc: +document.getElementById('cfgKyc').value || 0
+  };
+  
+  var roomsW = cfg.units > 0 ? Math.max(cfg.regRooms / cfg.units * 100, 8) : 0;
+  var peopleW = cfg.res > 0 ? Math.max(cfg.reg / cfg.res * 100, 8) : 0;
+  var kycW = cfg.reg > 0 ? Math.max(cfg.kyc / cfg.reg * 100, 8) : 0;
+  var postW = cfg.units > 0 ? Math.max(total / cfg.units * 100, 8) : 0;
+
+  document.getElementById('ovKpi').innerHTML=
+    kpiCard('ผู้รับเอกสาร',total,'blue','คน (unique)')+
+    kpiCard('Invoice open rate',pct(invRead,invPpl.length),'amber',invRead+' / '+invPpl.length+' คน')+
+    kpiCard('Receipt open rate',pct(recRead,recPpl.length),'green',recRead+' / '+recPpl.length+' คน')+
+    kpiCard('อ่านครบ',readAll,'green',pct(readAll,total)+' ของผู้รับ')+
+    kpiCard('อ่านบางส่วน',partial,'blue',pct(partial,total))+
+    kpiCard('ไม่อ่านเลย',noRead,'red',pct(noRead,total));
+
+  document.getElementById('ovMain').innerHTML=
+    '<div class="two-col">'
+    // 1. ฝั่ง "คน"
+    +'<div class="card"><div class="card-title">1. Funnel การลงทะเบียน (ฝั่งบุคคล)</div>'
+    +funnelStep('ผู้พักอาศัย + คู่สัญญา','100%','#B5D4F4','#0C447C','~'+cfg.res.toLocaleString()+' คน (331 ห้อง)','#185FA5','100%')
+    +'<div class="funnel-connector"></div>'
+    +funnelStep('ลงทะเบียนแล้ว (คน)',peopleW+'%','#1E55B0','#fff',cfg.reg+' คน','#e8f0fb',pct(cfg.reg,cfg.res))
+    +'<div class="funnel-connector"></div>'
+    +funnelStep('ยืนยันตัวตนสำเร็จ',kycW+'%','#3B6D11','#EAF3DE',cfg.kyc+' คน','#C0DD97',pct(cfg.kyc,cfg.reg))
+    +'<div class="funnel-hint">* หมายเหตุ: % ลงทะเบียนคน คำนวณเทียบจากยอดผู้พักอาศัยรวม (~1,200 คน) / % ยืนยันตัวตน คำนวณเทียบจากจำนวนคนลงทะเบียนสำเร็จ</div>'
+    +'<div class="legend" style="margin-top:18px">'
+    +'<div class="legend-item"><div class="legend-dot" style="background:#B5D4F4"></div>ผู้พักอาศัย</div>'
+    +'<div class="legend-item"><div class="legend-dot" style="background:#1E55B0"></div>ลงทะเบียนคน ('+pct(cfg.reg,cfg.res)+')</div>'
+    +'<div class="legend-item"><div class="legend-dot" style="background:#3B6D11"></div>ยืนยันตัวตนสำเร็จ ('+pct(cfg.kyc,cfg.reg)+')</div>'
+    +'</div></div>'
+
+    // 2. ฝั่ง "ห้อง"
+    +'<div class="card"><div class="card-title">2. Funnel การลงทะเบียนห้อง + Postbox</div>'
+    +funnelStep('คู่สัญญาทั้งหมด','100%','#B5D4F4','#0C447C',cfg.units+' ห้อง','#185FA5','100%')
+    +'<div class="funnel-connector"></div>'
+    +funnelStep('ลงทะเบียนแล้ว (ห้อง)',roomsW+'%','#1D9E75','#fff',cfg.regRooms+' ห้อง','#d0f5ea',pct(cfg.regRooms,cfg.units))
+    +'<div class="funnel-connector"></div>'
+    +funnelStep('ลงทะเบียนแล้ว + คู่สัญญา',postW+'%','#BA7517','#fff',total+' ห้อง','#fde9c0',pct(total,cfg.units))
+    +'<div class="funnel-hint">* หมายเหตุ: ทุกสัดส่วนคำนวณ % เทียบจากเป้าหมายคู่สัญญาทั้งหมด (331 ห้อง) เป็นหลัก / แถวสุดท้ายนับจากจำนวนห้องที่ได้รับเอกสาร Postbox</div>'
+    +'<div class="mini-cards">'
+    +'<div class="mini-card"><div class="mini-card-label">ใบแจ้งหนี้ (e-Invoice)</div>'
+    +'<div class="mini-card-val">'+invRead+'<span style="font-size:13px;font-weight:400;color:var(--text3)">/'+invPpl.length+'</span></div>'
+    +'<div class="mini-card-rate" style="color:var(--amber)">open rate '+pct(invRead,invPpl.length)+'</div></div>'
+    +'<div class="mini-card"><div class="mini-card-label">ใบเสร็จ (e-Receipt)</div>'
+    +'<div class="mini-card-val">'+recRead+'<span style="font-size:13px;font-weight:400;color:var(--text3)">/'+recPpl.length+'</span></div>'
+    +'<div class="mini-card-rate" style="color:var(--green)">open rate '+pct(recRead,recPpl.length)+'</div></div>'
+    +'</div>'
+    +'</div>'
+    +'</div>'
+
+    +'<div class="section-gap"></div>'
+    +'<div class="two-col">'
+    +'<div class="card"><div class="card-title">สรุปการอ่านเอกสาร ('+total+' คน)</div>'
+    +statRow('อ่านครบ (ทุกเอกสารที่ได้รับ)','<span class="pill pill-green">'+readAll+' คน ('+pct(readAll,total)+')</span>')
+    +statRow('อ่านบางส่วน','<span class="pill pill-blue">'+partial+' คน ('+pct(partial,total)+')</span>')
+    +statRow('ไม่อ่านเลย','<span class="pill pill-red">'+noRead+' คน ('+pct(noRead,total)+')</span>')
+    +statRow('ได้รับ Invoice ทั้งหมด',invPpl.length+' คน')
+    +statRow('ได้รับ Receipt ทั้งหมด',recPpl.length+' คน')
+    +'</div>'
+    
+    // กล่องปรับปรุงโครงสร้างเงื่อนไขใหม่ดึงจากคอลัมน์ sex ของ NHA Report 100% 
+    +'<div class="card">'
+    +'<div class="card-title">สัดส่วนและพฤติกรรมแยกตามเพศ</div>'
+    +'<div style="font-weight: 500; margin-bottom: 6px; color: var(--text2);">1. สัดส่วนเพศของผู้รับเอกสาร ('+total+' คน)</div>'
+    +barRow('หญิง', pctNum(totalFemale, total), '#3b7dd8', totalFemale+' คน')
+    +barRow('ชาย', pctNum(totalMale, total), '#1e55b0', totalMale+' คน')
+    +'<div style="height:16px"></div>'
+    +'<div style="font-weight: 500; margin-bottom: 6px; color: var(--text2);">2. Invoice open rate แยกเพศ</div>'
+    +barRow('หญิง', pctNum(femaleInvRead, femaleInvPpl.length), '#3b7dd8', femaleInvRead+'/'+femaleInvPpl.length)
+    +barRow('ชาย', pctNum(maleInvRead, maleInvPpl.length), '#1e55b0', maleInvRead+'/'+maleInvPpl.length)
+    +'<div style="height:16px"></div>'
+    +'<div style="font-weight: 500; margin-bottom: 6px; color: var(--text2);">3. Receipt open rate แยกเพศ</div>'
+    +barRow('หญิง', pctNum(femaleRecRead, femaleRecPpl.length), '#2da857', femaleRecRead+'/'+femaleRecPpl.length)
+    +barRow('ชาย', pctNum(maleRecRead, maleRecPpl.length), '#1a7d3e', maleRecRead+'/'+maleRecPpl.length)
+    +'</div>'
+    +'</div>';
+}
+
+// ══════════════════════════════════════════════
+//  GENERATION
+// ══════════════════════════════════════════════
+function renderGen() {
+  var people=filtPeople(); if(!people.length) return;
+  var gm={};
+  GENS.forEach(function(g){ gm[g.name]={name:g.name,color:g.color,total:0,iS:0,iR:0,rS:0,rR:0,rAll:0,none:0}; });
+  gm['Unknown']={name:'Unknown',color:'#9c9a93',total:0,iS:0,iR:0,rS:0,rR:0,rAll:0,none:0};
+  people.forEach(function(p){
+    var g=gm[p.gen]||gm['Unknown'];
+    g.total++;
+    if(p.inv!=='none'){g.iS++;if(p.inv==='read')g.iR++;}
+    if(p.rec!=='none'){g.rS++;if(p.rec==='read')g.rR++;}
+    if(p.status==='read')g.rAll++;
+    if(p.status==='none')g.none++;
+  });
+  var total=people.length;
+  var allG=GENS.concat([{name:'Unknown',color:'#9c9a93'}]).filter(function(g){ return gm[g.name].total>0; });
+  var maxR=0; allG.forEach(function(g){ var d=gm[g.name]; if(d.iS>0) maxR=Math.max(maxR,d.iR/d.iS*100); }); if(!maxR) maxR=1;
+
+  var barsH=allG.map(function(g){ var d=gm[g.name]; var r=d.iS>0?d.iR/d.iS*100:0; return barRow(g.name+' ('+d.total+')',r/maxR*100,g.color,d.iR+'/'+d.iS); }).join('');
+  var tblH=allG.map(function(g){
+    var d=gm[g.name]; var rc=d.iS>0&&d.iR/d.iS>=0.3?'var(--green)':'var(--amber)';
+    return '<tr><td>'+g.name+'</td><td>'+d.total+'</td><td>'+pct(d.total,total)+'</td>'
+      +'<td>'+d.iS+'</td><td>'+d.iR+'</td><td style="color:'+rc+'">'+pct(d.iR,d.iS)+'</td>'
+      +'<td>'+(d.rS||'—')+'</td><td>'+(d.rS?d.rR:'—')+'</td><td>'+(d.rS?pct(d.rR,d.rS):'—')+'</td>'
+      +'<td>'+d.rAll+'</td><td>'+d.none+'</td></tr>';
+  }).join('');
+  var tiS=people.filter(function(p){return p.inv!=='none';}).length;
+  var tiR=people.filter(function(p){return p.inv==='read';}).length;
+  var trS=people.filter(function(p){return p.rec!=='none';}).length;
+  var trR=people.filter(function(p){return p.rec==='read';}).length;
+  var tRA=people.filter(function(p){return p.status==='read';}).length;
+  var tN =people.filter(function(p){return p.status==='none';}).length;
+
+  document.getElementById('genContent').innerHTML=
+    '<div class="card" style="margin-bottom:16px"><div class="card-title">Invoice open rate แยก Generation</div>'+barsH+'</div>'
+    +'<div class="card"><div class="card-title">ตารางสรุปแยก Generation</div><div class="tbl-wrap"><table>'
+    +'<thead><tr><th>Generation</th><th>คน</th><th>%</th><th>Inv ส่ง</th><th>Inv อ่าน</th><th>Inv Rate</th><th>Rec ส่ง</th><th>Rec อ่าน</th><th>Rec Rate</th><th>อ่านครบ</th><th>ไม่อ่าน</th></tr></thead>'
+    +'<tbody>'+tblH
+    +'<tr class="total-row"><td>รวมทั้งหมด</td><td>'+total+'</td><td>100%</td>'
+    +'<td>'+tiS+'</td><td>'+tiR+'</td><td>'+pct(tiR,tiS)+'</td>'
+    +'<td>'+trS+'</td><td>'+trR+'</td><td>'+pct(trR,trS)+'</td>'
+    +'<td>'+tRA+'</td><td>'+tN+'</td></tr>'
+    +'</tbody></table></div></div>';
+}
+
+// ══════════════════════════════════════════════
+//  SPEED TO OPEN
+// ══════════════════════════════════════════════
+function renderSpeed() {
+  var txs=filtTx().filter(function(t){ return t.status==='read'&&t.durMin!=null; });
+  if(!txs.length){ document.getElementById('speedContent').innerHTML='<div class="empty"><div class="empty-icon">⏱</div><h3>ไม่มีข้อมูลการอ่าน</h3></div>'; return; }
+  var invTxs=txs.filter(function(t){ return t.docType.indexOf('Invoice')!==-1; });
+  var recTxs=txs.filter(function(t){ return t.docType.indexOf('Receipt')!==-1; });
+  function bkt(arr){ return SPEED.map(function(b){ return {label:b.label,color:b.color,count:arr.filter(function(t){ return t.durMin>=b.min&&t.durMin<b.max; }).length}; }); }
+  var aB=bkt(txs),iB=bkt(invTxs),rB=bkt(recTxs);
+  var mx=Math.max.apply(null,aB.map(function(b){ return b.count; }).concat([1]));
+
+  var allBH=aB.map(function(b){ return barRow(b.label,b.count/mx*100,b.color,b.count+' ครั้ง'); }).join('');
+  var iSH=iB.map(function(b,i){ var pl=i===0?'pill-green':'pill-gray'; return statRow(b.label,b.count>0?'<span class="pill '+pl+'">'+b.count+' คน ('+pct(b.count,invTxs.length)+')</span>':'<span style="color:var(--text3)">—</span>'); }).join('');
+  var rSH=rB.map(function(b,i){ var pl=i===0?'pill-green':'pill-gray'; return statRow(b.label,b.count>0?'<span class="pill '+pl+'">'+b.count+' คน ('+pct(b.count,recTxs.length)+')</span>':'<span style="color:var(--text3)">—</span>'); }).join('');
+
+  var allP=filtPeople();
+  var genNames=[]; GENS.concat([{name:'Unknown'}]).forEach(function(g){ if(allP.some(function(p){ return p.gen===g.name; })) genNames.push(g.name); });
+  
+  var crossH=SPEED.map(function(b,bi){
+    var bTxs=txs.filter(function(t){ return t.durMin>=b.min&&t.durMin<b.max; });
+    var bt=bTxs.length; var gc={};
+    bTxs.forEach(function(t){ for(var i=0;i<allP.length;i++){ if(allP[i].txs.indexOf(t)!==-1){ gc[allP[i].gen]=(gc[allP[i].gen]||0)+1; break; } } });
+    
+    var top=null,topC=0; Object.keys(gc).forEach(function(g){ if(gc[g]>topC){topC=gc[g];top=g;} });
+    var pl=bi===0?'pill-green':bi===4?'pill-red':'pill-gray';
+    
+    return '<tr>'
+      + '<td style="min-width:160px; font-weight:500;"><span class="pill '+pl+'">'+b.label+'</span></td>'
+      + '<td>'+bt+'</td><td>'+pct(bt,txs.length)+'</td>'
+      + genNames.map(function(g){ return '<td>'+(gc[g]||0)+'</td><td>'+(gc[g]?pct(gc[g],bt):'—')+'</td>'; }).join('')
+      + '<td>'+(top?'<span class="pill pill-blue">'+top+' ('+pct(topC,bt)+')</span>':'—')+'</td>'
+      + '</tr>';
+  }).join('');
+  var genTotH=genNames.map(function(g){ var c=txs.filter(function(t){ for(var i=0;i<allP.length;i++){if(allP[i].txs.indexOf(t)!==-1&&allP[i].gen===g) return true;} return false; }).length; return '<td>'+c+'</td><td>'+pct(c,txs.length)+'</td>'; }).join('');
+  var genTh=genNames.map(function(g){ return '<th>'+g+'</th><th>'+g+' %</th>'; }).join('');
+
+  document.getElementById('speedContent').innerHTML=
+    '<div class="card" style="margin-bottom:16px"><div class="card-title">ความเร็วในการเปิดอ่าน — รวม ('+txs.length+' events)</div>'+allBH+'</div>'
+    +'<div class="two-col" style="margin-bottom:16px">'
+    +'<div class="card"><div class="card-title">Invoice ('+invTxs.length+' events)</div>'+iSH+'</div>'
+    +'<div class="card"><div class="card-title">Receipt ('+recTxs.length+' events)</div>'+rSH+'</div></div>'
+    +'<div class="card"><div class="card-title">ช่วงเวลาที่เปิดอ่าน แยกตาม Generation ('+txs.length+' events)</div>'
+    +'<div class="tbl-wrap"><table><thead><tr><th style="min-width:160px;">ช่วงเวลา</th><th>รวม</th><th>%</th>'+genTh+'<th>GENERATION ที่ให้ความสนใจ</th></tr></thead>'
+    +'<tbody>'+crossH+'<tr class="total-row"><td>รวม</td><td>'+txs.length+'</td><td>100%</td>'+genTotH+'<td></td></tr></tbody></table></div></div>';
+}
+
+// ══════════════════════════════════════════════
+//  PEOPLE (รายบุคคล)
+// ══════════════════════════════════════════════
+function renderPeople(){
+  var people=filtPeople(); 
+  var c={all:people.length,read:0,partial:0,none:0,any_one:0};
+  
+  people.forEach(function(p){ 
+    c[p.status]++; 
+    if(p.inv==='read' || p.rec==='read') c.any_one++;
+  });
+  
+  var lb={all:'ทั้งหมด',read:'อ่านครบ',any_one:'อ่านอย่างใดอย่างหนึ่ง',partial:'อ่านบางส่วน',none:'ไม่อ่านเลย'};
+  document.querySelectorAll('.filter-btn').forEach(function(b){ 
+    var f=b.dataset.f; 
+    if(f&&lb[f]!==undefined) b.textContent=lb[f]+' ('+c[f]+')'; 
+  });
+  filterPeople();
+}
+
+// ══════════════════════════════════════════════
+//  PEOPLE FILTER
+// ══════════════════════════════════════════════
+function filterPeople(){
+  var people=filtPeople(); var q=(document.getElementById('peopleSearch').value||'').toLowerCase();
+  
+  var list=people.filter(function(p){ 
+    var nm=S.privacy?privName(p.name):p.name; 
+    var matchQ = (!q||nm.toLowerCase().indexOf(q)!==-1||p.gen.toLowerCase().indexOf(q)!==-1);
+    
+    if(!matchQ) return false;
+    if(S.peopleFilter==='all') return true;
+    if(S.peopleFilter==='any_one') return p.inv==='read' || p.rec==='read';
+    
+    return p.status===S.peopleFilter; 
+  });
+  
+  document.getElementById('peopleBody').innerHTML=list.length
+    ?list.map(function(p){
+        var bg=p.status==='read'?'background:#f0faf4':p.status==='partial'?'background:#fffbf0':'';
+        return '<tr style="'+bg+'"><td>'+p.seq+'</td><td>'+dname(p.name)+'</td><td>'+p.sex+'</td><td>'+(p.age!=null?p.age:'—')+'</td><td>'+p.gen+'</td><td>'+(p.month?fmtMonth(p.month):'—')+'</td><td>'+docPill(p.inv)+'</td><td>'+docPill(p.rec)+'</td><td>'+stPill(p.status)+'</td></tr>';
+      }).join('')
+    :'<tr><td colspan="9" style="text-align:center;color:var(--text3);padding:24px">ไม่พบข้อมูล</td></tr>';
+}
+
+function setPeopleFilter(f,el){ S.peopleFilter=f; document.querySelectorAll('.filter-btn').forEach(function(b){ b.classList.remove('active'); }); el.classList.add('active'); filterPeople(); }
+function docPill(v){ return v==='read'?'<span class="pill pill-green">อ่านแล้ว</span>':v==='wait'?'<span class="pill pill-amber">ยังไม่อ่าน</span>':'<span class="pill pill-gray">ไม่ได้รับ</span>'; }
+function stPill(s) { return s==='read'?'<span class="pill pill-green">อ่านครบ</span>':s==='partial'?'<span class="pill pill-blue">บางส่วน</span>':'<span class="pill pill-gray">ไม่อ่าน</span>'; }
+
+// ══════════════════════════════════════════════
+//  KYC (แสดงตารางลงทะเบียน)
+// ══════════════════════════════════════════════
+function renderKyc() {
+  if (!S.kyc || S.kyc.length === 0) {
+    document.getElementById('kycBody').innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text3);padding:32px">กรุณาอัพโหลดไฟล์ "ข้อมูลลงทะเบียน" แบบ Excel ก่อน</td></tr>';
+    return;
+  }
+  
+  var html = S.kyc.map(function(k, index) {
+    var nm = S.privacy ? privName(k.name) : k.name;
+    var ph = S.privacy ? privPhone(k.phone) : k.phone;
+    var st = k.status.indexOf('สำเร็จ')!==-1 ? '<span class="pill pill-green">'+k.status+'</span>' : '<span class="pill pill-amber">'+k.status+'</span>';
+    
+    return '<tr>'
+      + '<td>'+(index + 1)+'</td>'
+      + '<td>'+(k.room||'—')+'</td>'
+      + '<td>'+(nm||'—')+'</td>'
+      + '<td>'+(k.residentStatus||'—')+'</td>'
+      + '<td>'+(ph||'—')+'</td>'
+      + '<td>'+st+'</td>'
+      + '<td>'+(k.note||'—')+'</td>'
+      + '</tr>';
+  }).join('');
+  
+  document.getElementById('kycBody').innerHTML = html;
+}
+
+// ══════════════════════════════════════════════
+//  EXPORT TO EXCEL
+// ══════════════════════════════════════════════
+function exportToExcel() {
+  if (!S.raw.length) { alert('ยังไม่มีข้อมูล'); return; }
+  var wb = XLSX.utils.book_new();
+
+  var rawRows = S.raw.map(function(r, i) {
+    var age = calcAge(r.birthRaw);
+    return {
+      'ลำดับ': i+1, 'ชื่อ-นามสกุล': r.name, 'เพศ': r.sex,
+      'อายุ': age!=null?age:'', 'Generation': calcGen(age),
+      'ประเภทเอกสาร': r.docType, 'ประจำเดือน': r.period,
+      'สถานะ': r.status==='read'?'อ่านแล้ว':'ยังไม่อ่าน',
+      'วันที่ส่ง': r.sentAt?r.sentAt.toLocaleString('th-TH'):'',
+      'วันที่อ่าน': r.readAt?r.readAt.toLocaleString('th-TH'):'',
+      'ระยะเวลา (นาที)': r.durMin!=null?r.durMin:''
+    };
+  });
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rawRows), 'Raw Data');
+
+  var monthsToExport = S.months.length ? S.months : ['all'];
+  var monthSumRows = monthsToExport.map(function(m) {
+    var pp = m==='all' ? S.people : S.people.filter(function(p){ return p.month===m; });
+    var iP = pp.filter(function(p){ return p.inv!=='none'; }).length;
+    var rP = pp.filter(function(p){ return p.rec!=='none'; }).length;
+    var iR = pp.filter(function(p){ return p.inv==='read'; }).length;
+    var rR = pp.filter(function(p){ return p.rec==='read'; }).length;
+    return {
+      'ประจำเดือน': m==='all'?'ทั้งหมด':fmtMonth(m),
+      'ผู้รับเอกสาร': pp.length,
+      'Invoice ส่ง': iP, 'Invoice อ่าน': iR, 'Invoice Rate': iP>0?(iR/iP*100).toFixed(1)+'%':'—',
+      'Receipt ส่ง': rP, 'Receipt อ่าน': rR, 'Receipt Rate': rP>0?(rR/rP*100).toFixed(1)+'%':'—',
+      'อ่านครบ': pp.filter(function(p){ return p.status==='read'; }).length,
+      'อ่านบางส่วน': pp.filter(function(p){ return p.status==='partial'; }).length,
+      'ไม่อ่านเลย': pp.filter(function(p){ return p.status==='none'; }).length
+    };
+  });
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(monthSumRows), 'สรุปรายเดือน');
+
+  var gm={}; GENS.forEach(function(g){ gm[g.name]={total:0,iS:0,iR:0,rS:0,rR:0,rAll:0,none:0}; });
+  gm['Unknown']={total:0,iS:0,iR:0,rS:0,rR:0,rAll:0,none:0};
+  S.people.forEach(function(p){
+    var g=gm[p.gen]||gm['Unknown'];
+    g.total++;
+    if(p.inv!=='none'){g.iS++;if(p.inv==='read')g.iR++;}
+    if(p.rec!=='none'){g.rS++;if(p.rec==='read')g.rR++;}
+    if(p.status==='read')g.rAll++;
+    if(p.status==='none')g.none++;
+  });
+  var genRows = GENS.concat([{name:'Unknown'}]).filter(function(g){ return gm[g.name].total>0; }).map(function(g){
+    var d=gm[g.name];
+    return {'Generation':g.name,'จำนวน':d.total,'%':pct(d.total,S.people.length),
+            'Invoice ส่ง':d.iS,'Invoice อ่าน':d.iR,'Invoice Rate':pct(d.iR,d.iS),
+            'Receipt ส่ง':d.rS||'','Receipt อ่าน':d.rS?d.rR:'','Receipt Rate':d.rS?pct(d.rR,d.rS):'',
+            'อ่านครบ':d.rAll,'ไม่อ่านเลย':d.none};
+  });
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(genRows), 'Generation');
+
+  var readTx=S.raw.filter(function(t){ return t.status==='read'&&t.durMin!=null; });
+  var speedRows=SPEED.map(function(b){
+    var bTx=readTx.filter(function(t){ return t.durMin>=b.min&&t.durMin<b.max; });
+    var iT=bTx.filter(function(t){ return t.docType.indexOf('Invoice')!==-1; }).length;
+    var rT=bTx.filter(function(t){ return t.docType.indexOf('Receipt')!==-1; }).length;
+    return {'ช่วงเวลา':b.label,'จำนวน events':bTx.length,'%':pct(bTx.length,readTx.length),'Invoice':iT,'Receipt':rT};
+  });
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(speedRows), 'Speed to Open');
+
+  addPeopleSheet(wb, S.people, false);
+  addPeopleSheet(wb, S.people, true);
+
+  var d=new Date(); var fname='NHA_Dashboard_'+d.getFullYear()+pad2(d.getMonth()+1)+pad2(d.getDate())+'.xlsx';
+  XLSX.writeFile(wb, fname);
+}
+
+function addPeopleSheet(wb, people, isPrivacy) {
+  var rows = people.map(function(p) {
+    return {
+      'ลำดับ': p.seq, 'ชื่อ-นามสกุล': isPrivacy ? privName(p.name) : p.name, 'เพศ': p.sex,
+      'อายุ': p.age!=null?p.age:'', 'Generation': p.gen, 'ประจำเดือน': p.month ? fmtMonth(p.month) : '',
+      'e-Invoice': p.inv==='read'?'อ่านแล้ว':p.inv==='wait'?'ยังไม่อ่าน':'ไม่ได้รับ',
+      'e-Receipt': p.rec==='read'?'อ่านแล้ว':p.rec==='wait'?'ยังไม่อ่าน':'ไม่ได้รับ',
+      'สถานะ': p.status==='read'?'อ่านครบ':p.status==='partial'?'อ่านบางส่วน':'ไม่อ่านเลย'
+    };
+  });
+  var sheetName = isPrivacy ? 'Privacy View' : 'รายบุคคล';
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), sheetName);
+}
+
+// ══════════════════════════════════════════════
+//  UI HELPERS & TOGGLES
+// ══════════════════════════════════════════════
+function kpiCard(label,val,cls,sub){ return '<div class="kpi"><div class="kpi-label">'+label+'</div><div class="kpi-val '+cls+'">'+val+'</div><div class="kpi-sub">'+sub+'</div></div>'; }
+function statRow(label,val){ return '<div class="stat-row"><span>'+label+'</span><span class="stat-val">'+val+'</span></div>'; }
+function barRow(label,wPct,color,num){
+  var w=Math.max(Math.min(wPct,100),0); var txt=w>15?Math.round(wPct)+'%':'';
+  return '<div class="bar-row"><div class="bar-row-label">'+label+'</div><div class="bar-track"><div class="bar-fill" style="width:'+w+'%;background:'+color+'">'+txt+'</div></div><div class="bar-num">'+num+'</div></div>';
+}
+function funnelStep(label,w,bg,textColor,text,pctColor,pctTxt){
+  return '<div class="funnel-step"><div class="funnel-label">'+label+'</div><div class="funnel-bar-wrap"><div class="funnel-bar" style="width:'+w+';background:'+bg+'"><span class="funnel-bar-text" style="color:'+textColor+'">'+text+'</span><span class="funnel-bar-pct" style="color:'+pctColor+'">'+pctTxt+'</span></div></div></div>';
+}
+function switchTab(id){
+  var ids=['overview','gen','speed','people','kyc'];
+  document.querySelectorAll('.tab').forEach(function(t,i){ t.classList.toggle('active',ids[i]===id); });
+  document.querySelectorAll('.panel').forEach(function(p){ p.classList.toggle('active',p.id==='panel-'+id); });
+}
+
+// ---- PRIVACY TOGGLE LOGIC ----
+function togglePrivacy(){
+  S.privacy = !S.privacy;
+  var btn = document.getElementById('privacyBtn');
+  btn.textContent = S.privacy ? '🔓 แสดงชื่อปกติ' : '🔒 ดาวน์โหลดมุมมอง Privacy';
+  btn.classList.toggle('on', S.privacy);
+  
+  if(S.raw.length || S.kyc.length) {
+    renderAll(); 
+    if(S.privacy) {
+      setTimeout(exportPublicDashboard, 100); 
+    }
+  }
+}
+
+// ══════════════════════════════════════════════
+//  GENERATE PUBLIC DASHBOARD (NO SERVER NEEDED)
+// ══════════════════════════════════════════════
+function exportPublicDashboard() {
+  try {
+    if (!S.raw.length) { return; }
+
+    var safeRaw = JSON.parse(JSON.stringify(S.raw));
+    safeRaw.forEach(function(r) {
+      r.name = privName(r.name); 
+      delete r.recipId;         
+    });
+    
+    var safeKyc = JSON.parse(JSON.stringify(S.kyc || []));
+    safeKyc.forEach(function(k) {
+      k.name = privName(k.name);
+      k.phone = privPhone(k.phone);
+    });
+    
+    var safeLoadedMonths = JSON.parse(JSON.stringify(S.loadedMonths));
+
+    var clone = document.documentElement.cloneNode(true);
+    
+    var kpi = clone.querySelector('#ovKpi'); if(kpi) kpi.innerHTML = '';
+    var main = clone.querySelector('#ovMain'); if(main) main.innerHTML = '';
+    var gen = clone.querySelector('#genContent'); if(gen) gen.innerHTML = '';
+    var spd = clone.querySelector('#speedContent'); if(spd) spd.innerHTML = '';
+    var pbd = clone.querySelector('#peopleBody'); if(pbd) pbd.innerHTML = '';
+    var kbd = clone.querySelector('#kycBody'); if(kbd) kbd.innerHTML = '';
+    
+    var uz = clone.querySelector('#uploadZone'); if(uz) uz.style.display = 'none';
+    var db = clone.querySelector('#dataBar'); if(db) db.style.display = 'flex';
+    var cr = clone.querySelector('#configRow'); if(cr) cr.style.display = 'none';
+    var dba = clone.querySelector('.data-bar-actions'); if(dba) dba.style.display = 'none';
+    var pb = clone.querySelector('#privacyBtn'); if(pb) pb.style.display = 'none';
+
+    var mf = clone.querySelector('#monthFiles');
+    if(mf) {
+      var monthHtml = safeLoadedMonths.map(function(lm){
+        return '<span class="month-file-chip">' + lm.label + ' <span style="opacity:.6;font-size:10px">(' + lm.count + ')</span></span>';
+      }).join('');
+      mf.innerHTML = monthHtml;
+    }
+
+    var script = document.createElement('script');
+    script.textContent = `
+      window.onload = function() {
+        var rawData = ` + JSON.stringify(safeRaw) + `;
+        var lMonths = ` + JSON.stringify(safeLoadedMonths) + `;
+        rawData.forEach(function(r) {
+          if(r.sentAt) r.sentAt = new Date(r.sentAt);
+          if(r.readAt) r.readAt = new Date(r.readAt);
+        });
+        S.raw = rawData;
+        S.kyc = ` + JSON.stringify(safeKyc) + `;
+        S.loadedMonths = lMonths;
+        S.months = rawData.map(function(r){ return r.month; }).filter(function(v,i,a){ return v&&a.indexOf(v)===i; }).sort();
+        S.people = buildPeople(rawData);
+        S.privacy = true; 
+        
+        var hSub = document.getElementById('hdrSub');
+        if(hSub) hSub.textContent = S.people.length + ' ผู้รับเอกสาร · ' + S.months.map(fmtMonth).join(', ');
+        
+        buildMonthTabs();
+        S.month = 'all';
+        renderAll();
+      };
+    `;
+    clone.querySelector('body').appendChild(script);
+
+    var htmlString = "<!DOCTYPE html>\n<html lang=\"th\">\n" + clone.innerHTML + "\n</html>";
+    var blob = new Blob([htmlString], { type: 'text/html;charset=utf-8' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    var d = new Date();
+    a.download = 'NHA_Public_Dashboard_' + d.getFullYear() + pad2(d.getMonth()+1) + pad2(d.getDate()) + '.html';
+    
+    document.body.appendChild(a); 
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+  } catch (err) {
+    console.error(err);
+    alert('เกิดข้อผิดพลาดในการสร้างไฟล์ Public View: ' + err.message);
+  }
+}
+
+// ══════════════════════════════════════════════
+//  EXCEL UPLOAD (สำหรับตาราง ข้อมูลลงทะเบียน KYC)
+// ══════════════════════════════════════════════
+function handleRegExcel(e) {
+  var file = e.target.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(ev) {
+    try {
+      var wb = XLSX.read(ev.target.result, {type: 'array'});
+      var sn = wb.SheetNames[0]; 
+      var rows = XLSX.utils.sheet_to_json(wb.Sheets[sn], {defval: ''});
+      
+      if (!rows.length) { alert('ไม่พบข้อมูลในไฟล์ Excel ลงทะเบียน'); return; }
+      parseRegisterData(rows);
+    } catch(err) {
+      alert('อ่านไฟล์ Excel ลงทะเบียนไม่สำเร็จ: ' + err.message);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+  e.target.value = '';
+}
+
+function parseRegisterData(rows) {
+  var regCount = 0; 
+  var kycCount = 0;
+  var uniqueRooms = new Set();
+  S.kyc = []; 
+
+  var testRow = rows[0];
+  var keyMap = {};
+  Object.keys(testRow).forEach(function(k) {
+    var cleanKey = String(k).trim();
+    if (cleanKey.indexOf('ลำดับ') !== -1) keyMap['seq'] = k;
+    if (cleanKey.indexOf('เลขที่ห้อง') !== -1) keyMap['room'] = k;
+    if (cleanKey.indexOf('ชื่อ - นามสกุล ที่ลงทะเบียน') !== -1) keyMap['name'] = k;
+    if (cleanKey.indexOf('สถานะลูกบ้าน') !== -1) keyMap['residentStatus'] = k;
+    if (cleanKey.indexOf('เบอร์โทรศัพท์') !== -1) keyMap['phone'] = k;
+    if (cleanKey.indexOf('สถานะการยืนยันตัวตน') !== -1) keyMap['status'] = k;
+    if (cleanKey.indexOf('หมายเหตุ') !== -1) keyMap['note'] = k;
+  });
+
+  if (!keyMap['status'] || !keyMap['room']) {
+    alert('รูปแบบไฟล์ Excel ไม่ถูกต้อง ไม่พบหัวข้อ "เลขที่ห้อง" หรือ "สถานะการยืนยันตัวตน"');
+    return;
+  }
+
+  rows.forEach(function(r) {
+    var seqVal = String(r[keyMap['seq']] || '').trim();
+    if (!seqVal || isNaN(parseInt(seqVal, 10))) return;
+
+    var room = String(r[keyMap['room']] || '').trim();
+    if (!room || room === 'รอแจ้งเลขห้อง') return;
+
+    regCount++;
+
+    if (room !== '-') {
+      uniqueRooms.add(room);
+    }
+
+    var status = String(r[keyMap['status']] || '').trim();
+    if (status === 'ยืนยันตัวตนสำเร็จ') kycCount++;
+
+    S.kyc.push({
+      seq: seqVal,
+      room: room,
+      name: String(r[keyMap['name']] || '').trim(),
+      residentStatus: String(r[keyMap['residentStatus']] || '').trim(),
+      phone: String(r[keyMap['phone']] || '').trim(),
+      status: status,
+      note: String(r[keyMap['note']] || '').trim() 
+    });
+  });
+
+  document.getElementById('cfgRes').value = 1200;
+  document.getElementById('cfgUnits').value = 331;
+  document.getElementById('cfgRegRooms').value = uniqueRooms.size;
+  document.getElementById('cfgReg').value = regCount;
+  document.getElementById('cfgKyc').value = kycCount;
+  
+  var now = new Date();
+  document.getElementById('syncStatus').textContent = 'อัพเดตล่าสุด: ' + now.toLocaleTimeString('th-TH', {hour:'2-digit', minute:'2-digit'});
+  
+  renderAll();
+  alert('โหลดข้อมูลลงทะเบียนสำเร็จ! \nลงทะเบียนห้องทั้งหมด: ' + uniqueRooms.size + ' ห้อง \nลงทะเบียนคนทั้งหมด: ' + regCount + ' คน \nยืนยันตัวตนสำเร็จ: ' + kycCount + ' คน');
+}
+</script>
+</body>
+</html>
